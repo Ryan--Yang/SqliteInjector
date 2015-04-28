@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<init>
+    <hookAPP>
+        <name>tencent qq</name>
+        <package>com.tencent.mobileqq</package>
+        <hookClass>
+           <class path="com.tencent.mobileqq.app.SQLiteDatabase"/>
+           <class path="android.database.sqlite.SQLiteDatabase"/>    
+        </hookClass>
+    </hookAPP>
+    <hookAPP>
+        <name>tencent weixin</name>
+        <package>com.tencent.mm</package>
+        <hookClass>
+           <class path="com.tencent.kingkong.database.SQLiteDatabase"/>
+           <class path="android.database.sqlite.SQLiteDatabase"/>    
+        </hookClass>
+    </hookAPP>
+    <hookAPP>
+        <name>telephony</name>
+        <package>com.android.providers.telephony</package>
+        <hookClass>
+           <class path="android.database.sqlite.SQLiteDatabase"/>    
+        </hookClass>
+    </hookAPP>
+    <hookAPP>
+        <name>taobao</name>
+        <package>com.taobao.taobao</package>
+        <hookClass>
+           <class path="android.database.sqlite.SQLiteDatabase"/>    
+        </hookClass>
+    </hookAPP>
+    <hookAPP>
+        <name>sina weibo</name>
+        <package>com.sina.weibo</package>
+        <hookClass>
+           <class path="android.database.sqlite.SQLiteDatabase"/>    
+        </hookClass>
+    </hookAPP>
+</init>   
