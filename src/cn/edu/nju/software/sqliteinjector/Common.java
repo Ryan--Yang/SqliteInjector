@@ -15,7 +15,7 @@ public class Common {
 	
 	public static class LogFile {
 		public static final Long SIZE = 1024L*512;
-		public static final File HOOK_LOG_DIR = new File(Environment.getDataDirectory()+"/data/" + PACKAGE_NAME + "/hookLog/");
+		public static final String HOOK_LOG_DIR = Environment.getDataDirectory()+"/data/" + PACKAGE_NAME + "/cache";
 		public static final File MAIN = new File(Environment.getDataDirectory(), "data/" + PACKAGE_NAME + "/cache/error.main.log");
 		public static final File STORED = new File(Environment.getDataDirectory(), "data/" + PACKAGE_NAME + "/cache/error.stored.log");
 	}

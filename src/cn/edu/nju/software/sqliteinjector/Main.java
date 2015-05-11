@@ -12,10 +12,13 @@ import java.util.Locale;
 import java.util.Vector;
 
 import android.content.ContentValues;
+import android.database.Cursor;
 import android.os.Environment;
 import android.util.Log;
+import android.widget.Toast;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
+import de.robv.android.xposed.XC_MethodHook.MethodHookParam;
 import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.callbacks.XC_LoadPackage.LoadPackageParam;
@@ -25,7 +28,7 @@ public class Main implements IXposedHookLoadPackage {
 
 	XSharedPreferences pref;
 	final String SEPARATOR = " | ";// may be configurable later
-	final String PNAME = "com.hamzahrmalik.smstimeappend";
+	final String PNAME = "cn.edu.nju.software.sqliteinjector";
 	ArrayList<HookPackage> packageList = new ArrayList<HookPackage>();
 	Vector<String> methodHookedVec = new Vector<String>();
 	Vector<String> ignoreSQLVec = new Vector<String>();
@@ -35,7 +38,7 @@ public class Main implements IXposedHookLoadPackage {
 	
 	public Main(){
 		HookPackage tnew = null;
-/*		{//hook mobile qq
+		{//hook mobile qq
 			tnew = new HookPackage("com.tencent.mobileqq");
 			tnew.addHookClass("com.tencent.mobileqq.app.SQLiteDatabase");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
@@ -47,10 +50,28 @@ public class Main implements IXposedHookLoadPackage {
 			tnew.addHookClass("com.tencent.kingkong.database.SQLiteDatabase");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
-		}*/
+		}
 		
 		{//hook telephony
 			tnew = new HookPackage("com.android.providers.telephony");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook contacts
+			tnew = new HookPackage("com.android.providers.contacts");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook contacts
+			tnew = new HookPackage("com.android.mms");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook contacts
+			tnew = new HookPackage("com.android.contacts");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
 		}
@@ -74,6 +95,12 @@ public class Main implements IXposedHookLoadPackage {
 		
 		{//hook sina weibo
 			tnew = new HookPackage("com.sina.weibo");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook firefox
+			tnew = new HookPackage("cn.mozilla.firefox");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
 		}
@@ -104,7 +131,7 @@ public class Main implements IXposedHookLoadPackage {
 			ignoreMethodVec.add("get");
 			ignoreMethodVec.add("set");
 			ignoreMethodVec.add("isReadOnly");
-			ignoreMethodVec.add("query");
+			//ignoreMethodVec.add("query");
 			ignoreMethodVec.add("compileStatement");
 			ignoreMethodVec.add("findEditTable");
 			ignoreMethodVec.add("rawQuery");
@@ -117,6 +144,8 @@ public class Main implements IXposedHookLoadPackage {
 			ignoreMethodVec.add("releaseMemory");	
 			ignoreMethodVec.add("needUpgrade");	
 			ignoreMethodVec.add("yieldIf");
+			ignoreMethodVec.add("addCustom");
+			ignoreMethodVec.add("mark");
 		}		
 	}
 	
@@ -130,7 +159,7 @@ public class Main implements IXposedHookLoadPackage {
                 if (!Modifier.isAbstract(method.getModifiers())
                         && Modifier.isPublic(method.getModifiers())) {
                 	if(!isContain(ignoreMethodVec,method.getName())){
-                	 XposedBridge.hookMethod(method, xmh);
+                	 //XposedBridge.hookMethod(method, xmh);
                 	 XposedBridge.log("\nmethod hooked succeed:"+method);
                 	}
                 }
@@ -160,15 +189,18 @@ public class Main implements IXposedHookLoadPackage {
 
 	}
     private void write(String content)
-    {
+    {		
+    	if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+		return;
+    	}
         try
         {
             File dir = Environment.getExternalStorageDirectory();//得到data目录  
-            String log = (new SimpleDateFormat("MM-dd-HH",Locale.CHINA)).format(new Date());
-            log = hp.packageName+"_"+log;
+            String log = (new SimpleDateFormat("MM_dd_HH",Locale.CHINA)).format(new Date());
+            log = hp.packageName+"-"+log;
             log = log.replace(".", "_");
-           // XposedBridge.log("dir path:"+dir+"/log/"+log+".txt");
-            File newFile=new File(Common.LogFile.HOOK_LOG_DIR+"/log/"+log+".txt");  
+ //           XposedBridge.log("dir path:"+Common.LogFile.HOOK_LOG_DIR+"/"+log+".hog");           
+            File newFile=new File(dir+"/hog/"+log+".hog");  
             File parent = newFile.getParentFile();
             if(!parent.exists()){
             	parent.mkdirs();
@@ -176,7 +208,7 @@ public class Main implements IXposedHookLoadPackage {
             if(!newFile.exists()){
             	newFile.createNewFile();
             }
-            FileWriter fw=new FileWriter(newFile,true);//以追加的模式将字符写入  
+            FileWriter  fw=new FileWriter(newFile,true);//以追加的模式将字符写入  
             BufferedWriter bw=new BufferedWriter(fw);//又包裹一层缓冲流 增强IO功能  
             bw.write(content);  
             bw.flush();//将内容一次性写入文件  
@@ -222,6 +254,10 @@ public class Main implements IXposedHookLoadPackage {
     		ContentValues values = (ContentValues)o;
     		return values.toString();
     	}
+    	if(o instanceof Cursor){
+    		Cursor cs = (Cursor)o;
+    		cs.toString();
+    	}
     	if(o == null ){
     		return "null";
     	}
@@ -233,7 +269,9 @@ public class Main implements IXposedHookLoadPackage {
     }
     
     public class XC_LOCALE_MethodHook extends XC_MethodHook{
-    	LoadPackageParam lpparam;
+
+
+		LoadPackageParam lpparam;
     	public XC_LOCALE_MethodHook(LoadPackageParam lpparam){
     		this.lpparam = lpparam;
     	}
@@ -242,12 +280,12 @@ public class Main implements IXposedHookLoadPackage {
         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
         	//if(param.args.length <= 1)return ;
         	String time = (new SimpleDateFormat("mm:ss:SS",Locale.CHINA)).format(new Date());
-        	String tmp = "\nprocess:"+lpparam.processName;
-        	tmp += "\ntime:"+time;
-        	tmp += "\nmethod:"+param.method.toString();
+        	String tmp = "\nprocess::"+lpparam.processName;
+        	tmp += "\ntime::"+time;
+        	tmp += "\nmethod::"+param.method.toString();
         	String tmp2 = "";
         	int l = param.args.length;
-			tmp = tmp + "\nparam length:"+l+"";    
+			tmp = tmp + "\nparam length::"+l+"";    
         	int i = 0;
         	try{
         		if(l > 0){   		
@@ -257,17 +295,19 @@ public class Main implements IXposedHookLoadPackage {
         				return ;
         		}
         	} catch(Exception e) {
-            	Log.v("………………<<hook error>>………………", tmp);
-        		XposedBridge.log("………………<<hook error>>………………"+tmp);
+            	Log.v("………………<<nhook error>>………………", tmp);
+        		XposedBridge.log("………………<<nhook error>>………………"+tmp);
         		XposedBridge.log(e);
         	}
 
-            tmp +=  "\nparam:"+tmp2;
+            tmp +=  "\nparam::"+tmp2;
         	Log.v("\n#####################\nhook log", tmp);
-    		XposedBridge.log("\n#####################\nhook log"+tmp);
+    		//XposedBridge.log("\n#####################\nhook log"+tmp);
     		String content = "\n<HOOK TAG>"+tmp+"\n";
     		write(content);
         }
+        
+
     }   
     
     
