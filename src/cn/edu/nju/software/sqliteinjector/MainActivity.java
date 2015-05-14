@@ -36,7 +36,6 @@ public class MainActivity extends Activity {
 		mbOauth = spf.getString("AccessToken", null);
 	super.onCreate(savedInstanceState);
 	setContentView(R.layout.activity_main);
-	
 	mbUiThreadHandler = new Handler();
 	login = (Button) this.findViewById(R.id.login);
 

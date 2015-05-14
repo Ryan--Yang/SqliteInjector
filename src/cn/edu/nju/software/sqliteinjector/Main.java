@@ -8,11 +8,21 @@ import java.lang.reflect.Modifier;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 
+import com.spazedog.lib.reflecttools.ReflectClass;
+import com.spazedog.lib.reflecttools.ReflectMethod;
+import com.spazedog.lib.reflecttools.utils.ReflectConstants.Match;
+
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.app.ActivityManager.RunningAppProcessInfo;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteCursor;
 import android.os.Environment;
 import android.util.Log;
 import android.widget.Toast;
@@ -33,10 +43,11 @@ public class Main implements IXposedHookLoadPackage {
 	Vector<String> methodHookedVec = new Vector<String>();
 	Vector<String> ignoreSQLVec = new Vector<String>();
 	Vector<String> ignoreMethodVec = new Vector<String>();
+	long startTime;
 
 	HookPackage hp = null;
 	
-	public Main(){
+	public Main(){  //initial hook package list
 		HookPackage tnew = null;
 		{//hook mobile qq
 			tnew = new HookPackage("com.tencent.mobileqq");
@@ -64,7 +75,7 @@ public class Main implements IXposedHookLoadPackage {
 			packageList.add(tnew);
 		}
 		
-		{//hook contacts
+		{//hook mms
 			tnew = new HookPackage("com.android.mms");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
@@ -75,18 +86,12 @@ public class Main implements IXposedHookLoadPackage {
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
 		}
-			
-		/*{//hook orweb
-			tnew = new HookPackage("info.guardianproject.browser");
-			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
-			packageList.add(tnew);
-		}
-		
+
 		{//hook whatsapp
 			tnew = new HookPackage("com.whatsapp");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
 			packageList.add(tnew);
-		}*/
+		}
 		{//hook taobao
 			tnew = new HookPackage("com.taobao.taobao");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
@@ -102,6 +107,79 @@ public class Main implements IXposedHookLoadPackage {
 		{//hook firefox
 			tnew = new HookPackage("cn.mozilla.firefox");
 			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook tmail
+			tnew = new HookPackage("com.tmall.wireless");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook facebook
+			tnew = new HookPackage("com.facebook.katana");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook alipay
+			tnew = new HookPackage("com.eg.android.AlipayGphone");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook filghtmanager
+			tnew = new HookPackage("com.flightmanager.view");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");		
+			packageList.add(tnew);
+		}
+		
+		{//hook kugou music
+			tnew = new HookPackage("com.kugou.android");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			tnew.addHookClass("com.tencent.mm.sdk.storage.ISQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook autonavi
+			tnew = new HookPackage("com.autonavi.minimap");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook templerun2
+			tnew = new HookPackage("com.imangi.templerun2");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook momo
+			tnew = new HookPackage("com.immomo.momo");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook renren
+			tnew = new HookPackage("com.renren.mobile.android");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook talkingtom
+			tnew = new HookPackage("com.outfit7.talkingtom");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook baidu netdisk
+			tnew = new HookPackage("com.baidu.netdisk");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
+			packageList.add(tnew);
+		}
+		
+		{//hook moji
+			tnew = new HookPackage("com.moji.mjweather");
+			tnew.addHookClass("android.database.sqlite.SQLiteDatabase");
 			packageList.add(tnew);
 		}
 		
@@ -147,8 +225,15 @@ public class Main implements IXposedHookLoadPackage {
 			ignoreMethodVec.add("addCustom");
 			ignoreMethodVec.add("mark");
 		}		
+
+/*		File cacheDir = Common.LogFile.MAIN.getParentFile();
+		ReflectMethod setPermissions = ReflectClass.forName("android.os.FileUtils").findMethod("setPermissions", Match.BEST, String.class, Integer.TYPE, Integer.TYPE, Integer.TYPE);
+		
+		if (cacheDir.exists() || cacheDir.mkdir()) {
+			setPermissions.invoke(cacheDir.getPath(), 0777, -1, -1);
+		}*/
 	}
-	
+	//hook specific package method
     private void hookClass(String className,  ClassLoader classLoader,XC_MethodHook xmh)
     {
         try {
@@ -159,8 +244,8 @@ public class Main implements IXposedHookLoadPackage {
                 if (!Modifier.isAbstract(method.getModifiers())
                         && Modifier.isPublic(method.getModifiers())) {
                 	if(!isContain(ignoreMethodVec,method.getName())){
-                	 //XposedBridge.hookMethod(method, xmh);
-                	 XposedBridge.log("\nmethod hooked succeed:"+method);
+                	 XposedBridge.hookMethod(method, xmh);
+                	 //XposedBridge.log("\nmethod hooked succeed:"+method);
                 	}
                 }
             }
@@ -191,11 +276,12 @@ public class Main implements IXposedHookLoadPackage {
     private void write(String content)
     {		
     	if (!Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+    		XposedBridge.log("write file error!!!");
 		return;
     	}
         try
         {
-            File dir = Environment.getExternalStorageDirectory();//µ√µΩdataƒø¬º  
+            File dir = Environment.getExternalStorageDirectory();//ÂæóÂà∞dataÁõÆÂΩï  
             String log = (new SimpleDateFormat("MM_dd_HH",Locale.CHINA)).format(new Date());
             log = hp.packageName+"-"+log;
             log = log.replace(".", "_");
@@ -208,10 +294,10 @@ public class Main implements IXposedHookLoadPackage {
             if(!newFile.exists()){
             	newFile.createNewFile();
             }
-            FileWriter  fw=new FileWriter(newFile,true);//“‘◊∑º”µƒƒ£ ΩΩ´◊÷∑˚–¥»Î  
-            BufferedWriter bw=new BufferedWriter(fw);//”÷∞¸π¸“ª≤„ª∫≥Â¡˜ ‘ˆ«øIOπ¶ƒ‹  
+            FileWriter  fw=new FileWriter(newFile,true);//‰ª•ËøΩÂä†ÁöÑÊ®°ÂºèÂ∞ÜÂ≠óÁ¨¶ÂÜôÂÖ•  
+            BufferedWriter bw=new BufferedWriter(fw);//ÂèàÂåÖË£π‰∏ÄÂ±ÇÁºìÂÜ≤ÊµÅ Â¢ûÂº∫IOÂäüËÉΩ  
             bw.write(content);  
-            bw.flush();//Ω´ƒ⁄»›“ª¥Œ–‘–¥»ÎŒƒº˛  
+            bw.flush();//Â∞ÜÂÜÖÂÆπ‰∏ÄÊ¨°ÊÄßÂÜôÂÖ•Êñá‰ª∂  
             bw.close(); 
         }
         catch (Exception e)
@@ -231,13 +317,56 @@ public class Main implements IXposedHookLoadPackage {
     	}
     	return true;
     }
-    
+    private String columnToString(Cursor cs,int index){
+    	switch(cs.getType(index)){
+    		case Cursor.FIELD_TYPE_BLOB:return "BLOB block";
+    		case Cursor.FIELD_TYPE_FLOAT:return String.valueOf(cs.getFloat(index));
+    		case Cursor.FIELD_TYPE_INTEGER:return String.valueOf(cs.getInt(index));
+    		case Cursor.FIELD_TYPE_NULL:return "null";
+    		case Cursor.FIELD_TYPE_STRING:return cs.getString(index);
+    		default:return "";
+    	}
+    }
+    private String columnToString(SQLiteCursor cs,int index){
+    	switch(cs.getType(index)){
+    		case SQLiteCursor.FIELD_TYPE_BLOB:return "BLOB block";
+    		case SQLiteCursor.FIELD_TYPE_FLOAT:return String.valueOf(cs.getFloat(index));
+    		case SQLiteCursor.FIELD_TYPE_INTEGER:return String.valueOf(cs.getInt(index));
+    		case SQLiteCursor.FIELD_TYPE_NULL:return "null";
+    		case SQLiteCursor.FIELD_TYPE_STRING:return cs.getString(index);
+    		default:return "unkonw type";
+    	}
+    }
     private String getContent(Object o){
+    	if(o instanceof Cursor){
+    		Cursor cs = (Cursor)o;
+    		String[] sarray = cs.getColumnNames();
+    		StringBuilder sb = new StringBuilder();
+    		for(cs.moveToFirst();!cs.isAfterLast();cs.moveToNext()){
+        		for(int i = 0; i<sarray.length; i++){
+        			sb.append(sarray[i]+":"+columnToString(cs,cs.getColumnIndex(sarray[i]))+" && ");
+        		}
+    			sb.append("\n");
+    		}
+    		return sb.toString();
+    	}
+    	if(o instanceof SQLiteCursor){
+    		SQLiteCursor cs = (SQLiteCursor)o;
+    		String[] sarray = cs.getColumnNames();
+    		StringBuilder sb = new StringBuilder();
+    		for(cs.moveToFirst();!cs.isAfterLast();cs.moveToNext()){
+        		for(int i = 0; i<sarray.length; i++){
+        			sb.append(sarray[i]+":"+columnToString(cs,cs.getColumnIndex(sarray[i]))+" && ");
+        		}
+    			sb.append("%\n");
+    		}
+    		return sb.toString();
+    	}
     	if(o instanceof Integer){
-    		return o.toString();
+    		return ((Integer)o).toString();
     	}
     	if(o instanceof String){
-    		return o.toString();
+    		return ((String)o).toString();
     	}
     	if(o instanceof String[]){
     		String[] s =(String[])o;
@@ -248,28 +377,53 @@ public class Main implements IXposedHookLoadPackage {
     		return t;
     	}
     	if(o instanceof Boolean){
-    		return o.toString();
+    		return ((Boolean)o).toString();
     	}
     	if(o instanceof ContentValues){
     		ContentValues values = (ContentValues)o;
     		return values.toString();
     	}
-    	if(o instanceof Cursor){
-    		Cursor cs = (Cursor)o;
-    		cs.toString();
-    	}
+
     	if(o == null ){
     		return "null";
     	}
     	if(o instanceof Object){
     		return o.toString();
     	}
-
     	return "";
     }
     
-    public class XC_LOCALE_MethodHook extends XC_MethodHook{
 
+	String getCurProcessName() {
+    	 Class<?> activityManagerNative;
+    	 Object am;
+    	 Object o;
+		try {
+			activityManagerNative = Class.forName("android.app.ActivityManagerNative");
+			 am =activityManagerNative.getMethod("getDefault").invoke(activityManagerNative);  
+			 o = am.getClass().getMethod("getRunningAppProcesses").invoke(am);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			XposedBridge.log(e);
+			return "error";
+		}  
+    	
+    	 
+    	List<RunningAppProcessInfo> runningAppProcessInfo= null;
+    	if(o instanceof List){
+    		runningAppProcessInfo = (List<RunningAppProcessInfo>)o;
+    	}
+    	 int pid = android.os.Process.myPid();
+    	 for (ActivityManager.RunningAppProcessInfo appProcess : runningAppProcessInfo) {
+    	  if (appProcess.pid == pid) {
+
+    	   return appProcess.processName;
+    	  }
+    	 }
+    	 return null;
+    	}
+    
+    public class XC_LOCALE_MethodHook extends XC_MethodHook{
 
 		LoadPackageParam lpparam;
     	public XC_LOCALE_MethodHook(LoadPackageParam lpparam){
@@ -278,37 +432,54 @@ public class Main implements IXposedHookLoadPackage {
     	
         @Override
         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-        	//if(param.args.length <= 1)return ;
-        	String time = (new SimpleDateFormat("mm:ss:SS",Locale.CHINA)).format(new Date());
-        	String tmp = "\nprocess::"+lpparam.processName;
-        	tmp += "\ntime::"+time;
-        	tmp += "\nmethod::"+param.method.toString();
-        	String tmp2 = "";
-        	int l = param.args.length;
-			tmp = tmp + "\nparam length::"+l+"";    
-        	int i = 0;
-        	try{
-        		if(l > 0){   		
-        			for(i = 0; i < l; i++)
-        				tmp2 = tmp2 + getContent(param.args[i])+" && ";	                   		
-        			if(isContain(ignoreSQLVec,tmp2))
-        				return ;
-        		}
-        	} catch(Exception e) {
-            	Log.v("°≠°≠°≠°≠°≠°≠<<nhook error>>°≠°≠°≠°≠°≠°≠", tmp);
-        		XposedBridge.log("°≠°≠°≠°≠°≠°≠<<nhook error>>°≠°≠°≠°≠°≠°≠"+tmp);
-        		XposedBridge.log(e);
-        	}
-
-            tmp +=  "\nparam::"+tmp2;
-        	Log.v("\n#####################\nhook log", tmp);
-    		//XposedBridge.log("\n#####################\nhook log"+tmp);
-    		String content = "\n<HOOK TAG>"+tmp+"\n";
-    		write(content);
+        	startTime = System.currentTimeMillis();
+        	//XposedBridge.log("\ncurrent process::"+getCurProcessName());
         }
         
 
-    }   
-    
+     
+	@Override
+	protected void afterHookedMethod(MethodHookParam param)
+			throws Throwable {
+    	//if(param.args.length <= 1)return ;
+		
+    	String time = (new SimpleDateFormat("HH:mm:ss:SS",Locale.CHINA)).format(new Date());
+    	StringBuilder  tmp = new StringBuilder();
+    	 int pid = android.os.Process.myPid();
+    	tmp.append("\npid::"+pid);
+    	tmp.append("\ncurrent process::"+getCurProcessName());
+    	tmp.append("\nprocess::"+lpparam.processName);
+    	tmp.append("\ncall time::"+time);
+    	tmp.append("\nmethod::"+param.method.toString());
+    	StringBuilder tmp2 = new StringBuilder();
+    	int l = param.args.length;
+		tmp.append("\nparam length::"+l);    
+    	int i = 0;
+    	try{
+    		if(l > 0){   		
+    			for(i = 0; i < l; i++)
+    				tmp2.append((String) (getContent(param.args[i])+" && "));	                   		
+    		}
+    	} catch(Exception e) {
+        	Log.v("‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶<<nhook error>>‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶", tmp.toString());
+    		XposedBridge.log("‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶<<nhook error>>‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶‚Ä¶"+tmp);
+    		XposedBridge.log(e);
+    	}
+		if(isContain(ignoreSQLVec,tmp2.toString()))
+			return ;
+        tmp.append("\nparam::"+tmp2.toString());
+    	
+        if(param.getResult() != null){
+        	 String s = getContent(param.getResult());
+        	 if(s != "" && s != null)
+        	tmp.append("\nresult::" + s);
+        }
+        tmp.append("\ntime-consuming::"+(System.currentTimeMillis() - startTime)+"ms");
+    	Log.v("\n#####################\nhook log", tmp.toString());
+		//XposedBridge.log("\n#####################\nhook log"+tmp);
+		String content = "\n<HOOK TAG>"+tmp+"\n";
+		write(content);
+	}
+    }
     
 }

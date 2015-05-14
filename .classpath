@@ -9,5 +9,6 @@
 	<classpathentry exported="true" kind="lib" path="E:/androidWorkspace/Baidu-PCS-SDK-Android-L2-2.1.0/lib/Baidu-OAuth-SDK-Android-G-2.0.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="E:/androidWorkspace/Baidu-PCS-SDK-Android-L2-2.1.0/lib/Baidu-PCS-SDK-Android-L2-2.1.0.jar"/>
 	<classpathentry exported="true" kind="lib" path="E:/androidWorkspace/Baidu-PCS-SDK-Android-L2-2.1.0/lib/httpmime-4.2.jar"/>
+	<classpathentry kind="lib" path="/XPosedAdditionsGB/libs/reflecttools.jar"/>
 	<classpathentry kind="output" path="bin/classes"/>
 </classpath>
